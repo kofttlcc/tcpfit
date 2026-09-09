@@ -1,6 +1,7 @@
 inventory/servers.yml
 inventory/*.yml
 !inventory/servers.example.yml
+!inventory/topology.example.yml
 results/*.json
 *.log
 __pycache__/

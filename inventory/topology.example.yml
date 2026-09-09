@@ -1,0 +1,24 @@
+# 本機在實際業務路徑中的角色，不可由 IP、延遲或順序猜測。
+node_mode: proxy                 # router / proxy / tunnel / terminator
+peers:
+  - {name: source-a, host: 192.0.2.10, role: upstream, port: 5201}
+  - {name: sink-a, host: 198.51.100.20, role: downstream, port: 5201}
+  - {name: sink-b, host: 203.0.113.30, role: downstream, port: 5201}
+paths:
+  - {name: customer-a, upstream: source-a, downstream: sink-a, required: true}
+  - {name: customer-b, upstream: source-a, downstream: sink-b, required: true}
+workload:
+  seconds: 10
+  warmup_seconds: 2
+  parallel: 2
+  repeats: 3
+  validation_seconds: 20
+  interval_seconds: 1
+policy:
+  goodput_tolerance: 0.05       # 距最佳穩定 goodput 5% 內，優先降低重傳
+  path_regression: 0.10         # 任一必要路徑退步超過 10% 即淘汰
+  retrans_target: 0.01
+  max_cv: 0.15                  # 多輪 goodput 變異係數上限
+  min_improvement: 0.02         # 小於 2% 視為可能落在測量波動內
+  max_candidates: 12
+  baseline_every: 4
