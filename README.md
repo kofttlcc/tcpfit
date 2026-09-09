@@ -72,6 +72,36 @@ tcpfit archive delete 0010                        # 删除指定存档
 tcpfit uninstall --keep-archives                  # 卸载，保留存档和快照
 ```
 
+## 拓撲感知預檢與聯合選優
+
+多對端不是獨立測速站。請複製拓撲範例並明確描述本機角色、每個對端方向及
+上游到下游的配對；工具不會按 IP、延遲或輸入順序猜測：
+
+```bash
+cp inventory/topology.example.yml topology.yml
+python3 orchestrator/topology_optimizer.py topology.yml --facts-only \
+  --output results/my-topology.json
+python3 -m unittest discover -s tests -v
+```
+
+預檢記錄 CPU 架構、可用核心、負載、steal ticks、可用記憶體與 cgroup
+限制、核心及壅塞控制支援、預設路由網卡的 MTU、佇列、offload、錯誤與丟包。
+欄位分成 `observed`、`declared_not_measured` 與 `unavailable`；虛擬網卡宣告速率
+明確不作實際頻寬。輸出也會標明是否完成端到端驗證。
+
+選優函式使用接收端 goodput；重傳以 `retransmits / packets` 正規化，缺失不當作
+零。候選必須具備全部必要路徑、變異係數不超過 15%，且任一路徑不得比基準
+退步超過 10%。在距最佳穩定 goodput 5% 內優先選低重傳者，再看穩定性與 CPU；
+不到 2% 的差異視為可能處於測量噪音內。這些門檻與候選、重複、時間預算都可
+在 YAML 調整。這組保守預設避免以大幅限速換取零重傳，亦避免單一路徑峰值掩蓋
+必要路徑退步。
+
+目前 CLI 僅開放安全的 `--facts-only` 預檢。尚未接入能同時控制上下游兩端的業務
+workload driver，因此會明確記錄 `end_to_end_verified: false`，也**不會**把分段
+iperf 結果冒充端到端證據、更不會套用或持久化未驗證候選。核心的候選限制、
+讀回、回復、持久化與聯合選優元件已獨立實作並具測試；正式套用仍應先在具備
+兩端代理與 root/network-admin 權限的 VPS 測試床整合驗證。
+
 ## 多机（未上线）
 
 多机编排还没在真实环境验证过, 暂时不建议使用. 下面的用法仅供参考.
